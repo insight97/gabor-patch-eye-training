@@ -16,8 +16,8 @@ let resultList;
 let historyList;
 
 const CONFIG = {
-  blocks: 3,
-  trialsPerBlock: 12,
+  blocks: 1,
+  trialsPerBlock: 10,
   optionsCount: 16,
   optionSize: 86,
   optionGapX: 120,
@@ -40,6 +40,7 @@ const game = {
   answerIndices: new Set(),
   currentTarget: null,
   currentOptions: [],
+  requiredMatchCount: null,
 };
 
 function setFatalStatus(message) {
@@ -92,19 +93,19 @@ function updateProgress() {
 }
 
 function updateCandidateLabel() {
-  if (!game.answerIndices || game.answerIndices.size === 0) {
-    candidateLabel.textContent = '候選符號（請選出 - 個相同）';
+  if (!Number.isInteger(game.requiredMatchCount) || game.requiredMatchCount <= 0) {
+    candidateLabel.textContent = '候選符號（尚未開始）';
     return;
   }
-  candidateLabel.textContent = `候選符號（請選出 ${game.answerIndices.size} 個相同）`;
+  candidateLabel.textContent = `候選符號（請選出 ${game.requiredMatchCount} 個相同）`;
 }
 
 function updateTargetCount() {
-  if (!game.answerIndices || game.answerIndices.size === 0) {
-    targetCountText.textContent = '相同數量：-';
+  if (!Number.isInteger(game.requiredMatchCount) || game.requiredMatchCount <= 0) {
+    targetCountText.textContent = '相同數量：尚未開始';
     return;
   }
-  targetCountText.textContent = `相同數量：${game.answerIndices.size}`;
+  targetCountText.textContent = `相同數量：${game.requiredMatchCount}`;
 }
 
 async function showCelebrationPopup() {
@@ -252,7 +253,7 @@ function generateTrialPatches() {
     }
   });
 
-  return { target, options, answerIndices };
+  return { target, options, answerIndices, matchingCount };
 }
 
 function renderTarget() {
@@ -451,6 +452,7 @@ async function runTrial() {
   game.currentTarget = generated.target;
   game.currentOptions = generated.options;
   game.answerIndices = generated.answerIndices;
+  game.requiredMatchCount = generated.matchingCount;
   updateTargetCount();
   updateCandidateLabel();
   updateProgress();
@@ -460,7 +462,7 @@ async function runTrial() {
 
   setStatus(
     `Block ${game.block}/${CONFIG.blocks} · Trial ${game.trial}/${CONFIG.trialsPerBlock}`,
-    `請選出 ${game.answerIndices.size} 個與目標 Gabor Patch 相同的刺激`,
+    `請選出 ${game.requiredMatchCount} 個與目標 Gabor Patch 相同的刺激`,
   );
   setFeedback('');
 
@@ -484,6 +486,7 @@ async function runSession() {
   game.block = 0;
   game.trial = 0;
   game.sessionTrials = [];
+  game.requiredMatchCount = null;
 
   startBtn.disabled = true;
   resultPanel.hidden = true;
@@ -504,6 +507,7 @@ async function runSession() {
   }
 
   game.running = false;
+  game.requiredMatchCount = null;
   startBtn.disabled = false;
 
   clearCanvas(targetCtx, targetCanvas);
@@ -516,7 +520,7 @@ async function runSession() {
 
   setStatus('訓練完成 🎉', `正確率 ${summary.accuracy}% · 平均 RT ${summary.avgRt}`);
   setFeedback(`🏁 本回合總分：${summary.finalScore}`, 'success');
-  targetCountText.textContent = '相同數量：-';
+  targetCountText.textContent = '相同數量：尚未開始';
   updateCandidateLabel();
   updateProgress();
 }

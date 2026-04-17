@@ -5,7 +5,7 @@
 ## 現在可以玩的核心功能
 
 - 2AFC 方向判斷：按 `←` / `→` 判斷 Gabor patch 左傾或右傾
-- 訓練流程：`3 blocks × 20 trials`
+- 訓練流程：`1 block × 10 trials`
 - 難度自適應：`2-down-1-up`（用對比度調整）
 - 結果頁：正確率、平均反應時間、threshold 估計
 - 個人紀錄：存在瀏覽器 LocalStorage（非 cookie）

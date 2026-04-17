@@ -25,9 +25,21 @@
       </section>
 
       <section class="panel stimulus-wrap">
-        <div class="stimulus-label">目標符號</div>
+        <div class="stimulus-header">
+          <div class="stimulus-label">目標符號</div>
+          <div id="targetCountText" class="target-count">相同數量：-</div>
+        </div>
         <canvas id="targetCanvas" width="200" height="200" aria-label="target symbol"></canvas>
-        <div class="stimulus-label">候選 Gabor Patch（請選出所有相同）</div>
+        <div class="progress-wrap" aria-label="session progress">
+          <div class="progress-meta">
+            <span>進度</span>
+            <span id="progressText">0 / 36</span>
+          </div>
+          <div class="progress-track">
+            <div id="progressFill" class="progress-fill"></div>
+          </div>
+        </div>
+        <div class="stimulus-label">候選符號（請選出所有相同）</div>
         <canvas id="optionsCanvas" width="720" height="500" aria-label="candidate symbols"></canvas>
       </section>
 
@@ -41,6 +53,9 @@
         <ul id="historyList"></ul>
       </section>
     </main>
+    <div id="celebrationPopup" class="celebration-popup" hidden role="status" aria-live="polite">
+      <div class="celebration-card">🎉 恭喜答對！</div>
+    </div>
 
     <script src="app.js" defer></script>
   </body>

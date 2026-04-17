@@ -6,6 +6,10 @@ let startBtn;
 let statusText;
 let hintText;
 let feedbackText;
+let targetCountText;
+let progressText;
+let progressFill;
+let celebrationPopup;
 let resultPanel;
 let resultList;
 let historyList;
@@ -68,6 +72,36 @@ function setFeedback(text = '', type = '') {
   if (type) {
     feedbackText.classList.add(`feedback-${type}`);
   }
+}
+
+function getTotalTrials() {
+  return CONFIG.blocks * CONFIG.trialsPerBlock;
+}
+
+function getCompletedTrialsCount() {
+  return (game.block - 1) * CONFIG.trialsPerBlock + game.trial;
+}
+
+function updateProgress() {
+  const totalTrials = getTotalTrials();
+  const completedTrials = game.running ? getCompletedTrialsCount() : 0;
+  progressText.textContent = `${completedTrials} / ${totalTrials}`;
+  const percentage = totalTrials === 0 ? 0 : Math.min(100, Math.round((completedTrials / totalTrials) * 100));
+  progressFill.style.width = `${percentage}%`;
+}
+
+function updateTargetCount() {
+  if (!game.answerIndices || game.answerIndices.size === 0) {
+    targetCountText.textContent = '相同數量：-';
+    return;
+  }
+  targetCountText.textContent = `相同數量：${game.answerIndices.size}`;
+}
+
+async function showCelebrationPopup() {
+  celebrationPopup.hidden = false;
+  await sleep(1000);
+  celebrationPopup.hidden = true;
 }
 
 function clearCanvas(ctx, canvas) {
@@ -372,6 +406,8 @@ async function runTrial() {
   game.currentTarget = generated.target;
   game.currentOptions = generated.options;
   game.answerIndices = generated.answerIndices;
+  updateTargetCount();
+  updateProgress();
 
   renderTarget();
   renderOptions();
@@ -394,7 +430,7 @@ async function runTrial() {
     }, 16);
   });
 
-  await sleep(300);
+  await showCelebrationPopup();
 }
 
 async function runSession() {
@@ -405,6 +441,7 @@ async function runSession() {
 
   startBtn.disabled = true;
   resultPanel.hidden = true;
+  updateProgress();
 
   for (let block = 1; block <= CONFIG.blocks; block += 1) {
     game.block = block;
@@ -433,6 +470,8 @@ async function runSession() {
 
   setStatus('訓練完成 🎉', `正確率 ${summary.accuracy}% · 平均 RT ${summary.avgRt}`);
   setFeedback(`🏁 本回合總分：${summary.finalScore}`, 'success');
+  targetCountText.textContent = '相同數量：-';
+  updateProgress();
 }
 
 function initApp() {
@@ -442,6 +481,10 @@ function initApp() {
   statusText = document.getElementById('statusText');
   hintText = document.getElementById('hintText');
   feedbackText = document.getElementById('feedbackText');
+  targetCountText = document.getElementById('targetCountText');
+  progressText = document.getElementById('progressText');
+  progressFill = document.getElementById('progressFill');
+  celebrationPopup = document.getElementById('celebrationPopup');
   resultPanel = document.getElementById('resultPanel');
   resultList = document.getElementById('resultList');
   historyList = document.getElementById('historyList');
@@ -453,6 +496,10 @@ function initApp() {
     !statusText ||
     !hintText ||
     !feedbackText ||
+    !targetCountText ||
+    !progressText ||
+    !progressFill ||
+    !celebrationPopup ||
     !resultPanel ||
     !resultList ||
     !historyList
@@ -486,6 +533,8 @@ function initApp() {
 
   clearCanvas(targetCtx, targetCanvas);
   clearCanvas(optionsCtx, optionsCanvas);
+  updateTargetCount();
+  updateProgress();
   renderHistory();
 }
 

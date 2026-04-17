@@ -1,14 +1,14 @@
-const targetCanvas = document.getElementById('targetCanvas');
-const targetCtx = targetCanvas.getContext('2d');
-const optionsCanvas = document.getElementById('optionsCanvas');
-const optionsCtx = optionsCanvas.getContext('2d');
-const startBtn = document.getElementById('startBtn');
-const submitBtn = document.getElementById('submitBtn');
-const statusText = document.getElementById('statusText');
-const hintText = document.getElementById('hintText');
-const resultPanel = document.getElementById('resultPanel');
-const resultList = document.getElementById('resultList');
-const historyList = document.getElementById('historyList');
+let targetCanvas;
+let targetCtx;
+let optionsCanvas;
+let optionsCtx;
+let startBtn;
+let submitBtn;
+let statusText;
+let hintText;
+let resultPanel;
+let resultList;
+let historyList;
 
 const CONFIG = {
   blocks: 3,
@@ -38,6 +38,26 @@ const game = {
   currentTarget: null,
   currentOptions: [],
 };
+
+function setFatalStatus(message) {
+  const statusNode = document.getElementById('statusText');
+  const hintNode = document.getElementById('hintText');
+  const startNode = document.getElementById('startBtn');
+  const submitNode = document.getElementById('submitBtn');
+
+  if (statusNode) {
+    statusNode.textContent = message;
+  }
+  if (hintNode) {
+    hintNode.textContent = '請重新整理頁面，或改用最新版 Chrome / Edge / Firefox / Safari。';
+  }
+  if (startNode) {
+    startNode.disabled = true;
+  }
+  if (submitNode) {
+    submitNode.disabled = true;
+  }
+}
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -403,25 +423,72 @@ async function runSession() {
   setStatus('訓練完成 🎉', `正確率 ${summary.accuracy}% · 平均 RT ${summary.avgRt}`);
 }
 
-startBtn.addEventListener('click', () => {
-  if (game.running) {
+function initApp() {
+  targetCanvas = document.getElementById('targetCanvas');
+  optionsCanvas = document.getElementById('optionsCanvas');
+  startBtn = document.getElementById('startBtn');
+  submitBtn = document.getElementById('submitBtn');
+  statusText = document.getElementById('statusText');
+  hintText = document.getElementById('hintText');
+  resultPanel = document.getElementById('resultPanel');
+  resultList = document.getElementById('resultList');
+  historyList = document.getElementById('historyList');
+
+  if (
+    !targetCanvas ||
+    !optionsCanvas ||
+    !startBtn ||
+    !submitBtn ||
+    !statusText ||
+    !hintText ||
+    !resultPanel ||
+    !resultList ||
+    !historyList
+  ) {
+    setFatalStatus('初始化失敗：找不到必要的頁面元件');
     return;
   }
-  runSession();
-});
 
-submitBtn.addEventListener('click', () => {
-  submitCurrentTrial('answered');
-});
-
-optionsCanvas.addEventListener('click', toggleOptionAt);
-
-document.addEventListener('keydown', (event) => {
-  if (event.key === 'Enter') {
-    submitCurrentTrial('answered');
+  targetCtx = targetCanvas.getContext('2d');
+  optionsCtx = optionsCanvas.getContext('2d');
+  if (!targetCtx || !optionsCtx) {
+    setFatalStatus('初始化失敗：瀏覽器不支援 Canvas 2D');
+    return;
   }
-});
 
-clearCanvas(targetCtx, targetCanvas);
-clearCanvas(optionsCtx, optionsCanvas);
-renderHistory();
+  startBtn.addEventListener('click', () => {
+    if (game.running) {
+      return;
+    }
+    runSession();
+  });
+
+  submitBtn.addEventListener('click', () => {
+    submitCurrentTrial('answered');
+  });
+
+  optionsCanvas.addEventListener('click', toggleOptionAt);
+  optionsCanvas.addEventListener('touchstart', (event) => {
+    const [touch] = event.changedTouches;
+    if (!touch) {
+      return;
+    }
+    toggleOptionAt(touch);
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      submitCurrentTrial('answered');
+    }
+  });
+
+  clearCanvas(targetCtx, targetCanvas);
+  clearCanvas(optionsCtx, optionsCanvas);
+  renderHistory();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initApp);
+} else {
+  initApp();
+}

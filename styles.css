@@ -191,10 +191,16 @@ ul {
 .celebration-popup {
   position: fixed;
   inset: 0;
-  background: rgb(17 24 39 / 72%);
-  display: grid;
-  place-items: center;
+  display: none;
+  align-items: start;
+  justify-items: center;
+  padding-top: 24px;
+  pointer-events: none;
   z-index: 50;
+}
+
+.celebration-popup.is-visible {
+  display: grid;
 }
 
 .celebration-card {
@@ -207,6 +213,7 @@ ul {
   color: #bbf7d0;
   text-shadow: 0 0 18px rgb(34 197 94 / 35%);
   animation: popIn 180ms ease-out;
+  pointer-events: auto;
 }
 
 @keyframes popIn {

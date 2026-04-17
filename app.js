@@ -99,18 +99,25 @@ function updateTargetCount() {
 }
 
 async function showCelebrationPopup() {
+  celebrationPopup.classList.add('is-visible');
   celebrationPopup.hidden = false;
+
   await new Promise((resolve) => {
     let settled = false;
     let timerId;
+    let keydownHandler;
 
     const closePopup = () => {
       if (settled) {
         return;
       }
       settled = true;
+      celebrationPopup.classList.remove('is-visible');
       celebrationPopup.hidden = true;
       celebrationPopup.removeEventListener('pointerdown', handlePointerDown);
+      celebrationPopup.removeEventListener('click', handlePointerDown);
+      celebrationPopup.removeEventListener('touchstart', handlePointerDown);
+      window.removeEventListener('keydown', keydownHandler);
       clearTimeout(timerId);
       resolve();
     };
@@ -119,8 +126,17 @@ async function showCelebrationPopup() {
       closePopup();
     };
 
+    keydownHandler = (event) => {
+      if (event.key === 'Escape') {
+        closePopup();
+      }
+    };
+
     celebrationPopup.addEventListener('pointerdown', handlePointerDown);
-    timerId = setTimeout(closePopup, 1000);
+    celebrationPopup.addEventListener('click', handlePointerDown);
+    celebrationPopup.addEventListener('touchstart', handlePointerDown, { passive: true });
+    window.addEventListener('keydown', keydownHandler);
+    timerId = setTimeout(closePopup, 900);
   });
 }
 
@@ -553,6 +569,7 @@ function initApp() {
 
   clearCanvas(targetCtx, targetCanvas);
   clearCanvas(optionsCtx, optionsCanvas);
+  celebrationPopup.classList.remove('is-visible');
   celebrationPopup.hidden = true;
   updateTargetCount();
   updateProgress();

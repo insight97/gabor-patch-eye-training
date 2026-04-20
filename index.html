@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>蓋博符號比對訓練 MVP</title>
+    <title>蓋博符號比對訓練</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -11,11 +11,12 @@
       <h1>蓋博符號比對訓練</h1>
       <p class="subtitle">上方會顯示目標蓋博符號，下方會出現十幾個蓋博符號，請選出所有與目標完全相同的刺激。</p>
 
-      <section class="panel controls">
-        <p>操作：點選下方符號可切換選取，全部找對後會自動進入下一題。</p>
+      <details class="panel controls">
+        <summary>操作說明</summary>
+        <p>點選下方符號可切換選取，全部找對後會自動進入下一題。</p>
         <p>每題不限時，但會記錄反應時間，並納入分數計算。</p>
         <p class="note">訓練用途，非醫療診斷或治療。</p>
-      </section>
+      </details>
 
       <section class="panel status">
         <div id="statusText">尚未開始</div>
@@ -24,37 +25,52 @@
       </section>
 
       <section class="panel stimulus-wrap">
-        <div class="stimulus-header">
-          <div class="stimulus-label">目標符號</div>
-        </div>
-        <canvas id="targetCanvas" width="140" height="140" aria-label="target symbol"></canvas>
-        <button id="startBtn" class="progress-start-btn">開始訓練</button>
-        <div class="progress-wrap" aria-label="session progress">
-          <div class="progress-meta">
-            <span>進度</span>
-            <span id="progressText">0 / 10</span>
-          </div>
-          <div class="progress-track">
-            <div id="progressFill" class="progress-fill"></div>
+        <div class="session-top">
+          <button id="startBtn" class="progress-start-btn">開始訓練</button>
+          <div class="progress-wrap" aria-label="session progress" hidden>
+            <div class="progress-meta">
+              <span>進度</span>
+              <span id="progressText">0 / 10</span>
+            </div>
+            <div class="progress-track">
+              <div id="progressFill" class="progress-fill"></div>
+            </div>
           </div>
         </div>
-        <div id="candidateLabel" class="stimulus-label">候選符號（尚未開始）</div>
-        <div class="options-stage">
-          <canvas id="optionsCanvas" width="720" height="500" aria-label="candidate symbols"></canvas>
-          <div id="celebrationPopup" class="celebration-overlay" hidden role="status" aria-live="polite">
-            <div class="celebration-card">🎉 恭喜答對！</div>
+        <div class="main-area">
+          <div class="target-area">
+            <div class="target-label-row">
+              <div class="stimulus-label">目標符號</div>
+              <div id="difficultyBadge" class="difficulty-badge" hidden>普通</div>
+            </div>
+            <canvas id="targetCanvas" width="140" height="140" aria-label="target symbol"></canvas>
+            <div id="matchCountBadge" class="match-count-badge" hidden>
+              <div id="matchCountNumber" class="match-count-number">2</div>
+              <div class="match-count-label">個與目標相同</div>
+            </div>
+          </div>
+          <div class="options-area">
+            <div class="options-header">
+              <div id="candidateLabel" class="stimulus-label">候選符號</div>
+            </div>
+            <div class="options-stage">
+              <canvas id="optionsCanvas" width="720" height="500" aria-label="candidate symbols"></canvas>
+              <div id="celebrationPopup" class="celebration-overlay" hidden role="status" aria-live="polite">
+                <div class="celebration-card">🎉 恭喜答對！</div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       <section class="panel" id="resultPanel" hidden>
         <h2>本次結果</h2>
-        <ul id="resultList"></ul>
+        <div id="resultList" class="result-grid"></div>
       </section>
 
       <section class="panel">
         <h2>近期紀錄（本機）</h2>
-        <ul id="historyList"></ul>
+        <div id="historyList" class="history-list"></div>
       </section>
     </main>
 

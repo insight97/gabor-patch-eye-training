@@ -14,6 +14,8 @@ let celebrationPopup;
 let resultPanel;
 let resultList;
 let historyList;
+let difficultyBadge;
+let matchCountBadge;
 
 const CONFIG = {
   blocks: 1,
@@ -137,19 +139,30 @@ function updateSessionControls() {
   if (game.running) {
     startBtn.hidden = true;
     progressWrap.hidden = false;
-    return;
+  } else {
+    startBtn.hidden = false;
+    progressWrap.hidden = true;
   }
 
-  startBtn.hidden = false;
-  progressWrap.hidden = true;
+  updateDifficultyBadge();
 }
 
 function updateCandidateLabel() {
   if (!Number.isInteger(game.requiredMatchCount) || game.requiredMatchCount <= 0) {
-    candidateLabel.textContent = '候選符號（尚未開始）';
+    candidateLabel.textContent = '候選符號';
+    if (matchCountBadge) {
+      matchCountBadge.hidden = true;
+    }
     return;
   }
-  candidateLabel.textContent = `候選符號（請選出 ${game.requiredMatchCount} 個相同）`;
+  candidateLabel.textContent = '候選符號';
+  if (matchCountBadge) {
+    const numberEl = document.getElementById('matchCountNumber');
+    if (numberEl) {
+      numberEl.textContent = game.requiredMatchCount;
+    }
+    matchCountBadge.hidden = false;
+  }
 }
 
 async function showCelebrationPopup() {
@@ -192,8 +205,21 @@ async function showCelebrationPopup() {
   });
 }
 
+function updateDifficultyBadge() {
+  if (!difficultyBadge) {
+    return;
+  }
+  if (!game.running) {
+    difficultyBadge.hidden = true;
+    return;
+  }
+  difficultyBadge.hidden = false;
+  difficultyBadge.textContent = getDifficultyProfile().label;
+  difficultyBadge.className = `difficulty-badge level-${game.difficultyLevel}`;
+}
+
 function clearCanvas(ctx, canvas) {
-  ctx.fillStyle = '#9ca3af';
+  ctx.fillStyle = '#111827';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 }
 
@@ -498,6 +524,7 @@ function submitCurrentTrial() {
   };
   game.sessionTrials.push(trialResult);
   const adaptation = adaptDifficulty(trialResult);
+  updateDifficultyBadge();
 
   const trialTitle = `Block ${game.block}/${CONFIG.blocks} · Trial ${game.trial}/${CONFIG.trialsPerBlock}`;
   if (correct) {
@@ -534,16 +561,33 @@ function renderHistory() {
   historyList.innerHTML = '';
 
   if (history.length === 0) {
-    const li = document.createElement('li');
-    li.textContent = '還沒有紀錄，先玩一局吧。';
-    historyList.appendChild(li);
+    const p = document.createElement('p');
+    p.style.cssText = 'color:var(--muted);margin:4px 0';
+    p.textContent = '還沒有紀錄，先玩一局吧。';
+    historyList.appendChild(p);
     return;
   }
 
   history.slice(0, 10).forEach((session) => {
-    const li = document.createElement('li');
-    li.textContent = `${session.date}｜總分 ${session.finalScore}｜正確率 ${session.accuracy}%｜平均 RT ${session.avgRt}`;
-    historyList.appendChild(li);
+    const item = document.createElement('div');
+    item.className = 'history-item';
+
+    const date = document.createElement('span');
+    date.className = 'history-date';
+    date.textContent = session.date;
+
+    const score = document.createElement('span');
+    score.className = 'history-score';
+    score.textContent = `總分 ${session.finalScore}`;
+
+    const stats = document.createElement('span');
+    stats.className = 'history-stats';
+    stats.textContent = `正確率 ${session.accuracy}% · 平均 RT ${session.avgRt}`;
+
+    item.appendChild(date);
+    item.appendChild(score);
+    item.appendChild(stats);
+    historyList.appendChild(item);
   });
 }
 
@@ -586,20 +630,29 @@ function summarizeSession() {
 
 function showResult(summary) {
   resultList.innerHTML = '';
-  [
-    `題數：${summary.total}`,
-    `正確：${summary.correct}`,
-    `完成率：${summary.completionRate}%`,
-    `操作正確率：${summary.accuracy}%（點錯再收回會扣分）`,
-    `誤點次數：${summary.totalMistakeClicks} / ${summary.totalClicks} 次操作`,
-    `平均反應時間：${summary.avgRt}`,
-    `平均難度等級：${summary.avgDifficulty}`,
-    `速度分數：${summary.speedScore}`,
-    `總分（正確率 70% + 速度 30%）：${summary.finalScore}`,
-  ].forEach((text) => {
-    const li = document.createElement('li');
-    li.textContent = text;
-    resultList.appendChild(li);
+  const stats = [
+    { label: '總分', value: summary.finalScore, highlight: true },
+    { label: '完成率', value: `${summary.completionRate}%`, highlight: true },
+    { label: '操作正確率', value: `${summary.accuracy}%` },
+    { label: '平均反應時間', value: summary.avgRt },
+    { label: '速度分數', value: summary.speedScore },
+    { label: '答對題數', value: `${summary.correct} / ${summary.total}` },
+    { label: '誤點次數', value: summary.totalMistakeClicks },
+    { label: '平均難度', value: summary.avgDifficulty },
+  ];
+
+  stats.forEach(({ label, value, highlight }) => {
+    const card = document.createElement('div');
+    card.className = highlight ? 'stat-card highlight' : 'stat-card';
+    const valueEl = document.createElement('div');
+    valueEl.className = 'stat-value';
+    valueEl.textContent = value;
+    const labelEl = document.createElement('div');
+    labelEl.className = 'stat-label';
+    labelEl.textContent = label;
+    card.appendChild(valueEl);
+    card.appendChild(labelEl);
+    resultList.appendChild(card);
   });
 
   resultPanel.hidden = false;
@@ -704,6 +757,8 @@ function initApp() {
   resultPanel = document.getElementById('resultPanel');
   resultList = document.getElementById('resultList');
   historyList = document.getElementById('historyList');
+  difficultyBadge = document.getElementById('difficultyBadge');
+  matchCountBadge = document.getElementById('matchCountBadge');
 
   if (
     !targetCanvas ||

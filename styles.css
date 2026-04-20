@@ -207,13 +207,11 @@ button:disabled {
   width: min(92%, 560px);
   transform: translate(-50%, -50%);
   z-index: 1;
-  padding: 10px 14px;
-  border-radius: 10px;
-  border: 1px solid rgb(252 211 77 / 45%);
-  background: rgb(17 24 39 / 82%);
+  padding: 0;
   font-size: clamp(16px, 2vw, 20px);
   font-weight: 700;
   color: #fcd34d;
+  text-shadow: 0 2px 10px rgb(17 24 39 / 70%);
   line-height: 1.45;
   letter-spacing: 0.2px;
   text-align: center;

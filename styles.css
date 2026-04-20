@@ -201,10 +201,23 @@ button:disabled {
 }
 
 .candidate-warmup-hint {
-  margin-top: 6px;
-  font-size: 13px;
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  right: 14px;
+  z-index: 1;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid rgb(252 211 77 / 45%);
+  background: rgb(17 24 39 / 82%);
+  font-size: clamp(16px, 2vw, 20px);
+  font-weight: 700;
   color: #fcd34d;
-  line-height: 1.5;
+  line-height: 1.45;
+  letter-spacing: 0.2px;
+  text-align: center;
+  text-wrap: balance;
+  pointer-events: none;
 }
 
 /* Difficulty badge */

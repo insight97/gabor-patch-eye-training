@@ -104,11 +104,19 @@ function sleep(ms) {
 }
 
 function setStatus(text, hint = '') {
-  statusText.textContent = text;
-  hintText.textContent = hint;
+  if (statusText) {
+    statusText.textContent = text;
+  }
+  if (hintText) {
+    hintText.textContent = hint;
+  }
 }
 
 function setFeedback(text = '', type = '') {
+  if (!feedbackText) {
+    return;
+  }
+
   feedbackText.textContent = text;
   feedbackText.className = '';
   if (type) {
@@ -774,9 +782,6 @@ function initApp() {
     !targetCanvas ||
     !optionsCanvas ||
     !startBtn ||
-    !statusText ||
-    !hintText ||
-    !feedbackText ||
     !candidateLabel ||
     !candidateWarmupHint ||
     !progressText ||

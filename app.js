@@ -18,41 +18,45 @@ let historyList;
 const CONFIG = {
   blocks: 1,
   trialsPerBlock: 10,
-  optionsCount: 16,
+  optionsCount: 20,
   optionSize: 86,
   optionGapX: 120,
   optionGapY: 110,
 };
 
 const STORE_KEY = 'gabor-match-training-history-v3';
-const ORIENTATIONS = [-60, -30, 0, 30, 60];
-const FREQUENCIES = [0.028, 0.04, 0.052];
+const ORIENTATIONS = [-45, 0, 45, 90];
+const FREQUENCIES = [0.018, 0.030, 0.044];
 const DIFFICULTY_PROFILES = [
   {
     label: '簡單',
-    orientationOffsets: [-60, -30, 30, 60],
-    frequencyOffsets: [-0.024, -0.012, 0.012, 0.024],
+    contrast: 0.9,
+    orientationOffsets: [-90, -45, 45, 90],
+    frequencyOffsets: [-0.036, -0.018, 0.018, 0.036],
     fastRtThreshold: 2300,
     slowRtThreshold: 4000,
   },
   {
     label: '普通',
-    orientationOffsets: [-30, -15, 15, 30],
-    frequencyOffsets: [-0.012, -0.006, 0.006, 0.012],
+    contrast: 0.75,
+    orientationOffsets: [-45, -22, 22, 45],
+    frequencyOffsets: [-0.018, -0.009, 0.009, 0.018],
     fastRtThreshold: 1800,
     slowRtThreshold: 3300,
   },
   {
     label: '困難',
-    orientationOffsets: [-20, -10, 10, 20],
-    frequencyOffsets: [-0.008, -0.004, 0.004, 0.008],
+    contrast: 0.6,
+    orientationOffsets: [-30, -15, 15, 30],
+    frequencyOffsets: [-0.012, -0.006, 0.006, 0.012],
     fastRtThreshold: 1500,
     slowRtThreshold: 2600,
   },
   {
     label: '專家',
-    orientationOffsets: [-12, -6, 6, 12],
-    frequencyOffsets: [-0.005, -0.002, 0.002, 0.005],
+    contrast: 0.45,
+    orientationOffsets: [-20, -10, 10, 20],
+    frequencyOffsets: [-0.008, -0.004, 0.004, 0.008],
     fastRtThreshold: 1200,
     slowRtThreshold: 2200,
   },
@@ -201,14 +205,15 @@ function drawGaborPatch(ctx, cx, cy, size, patch, selected = false) {
   const sinT = Math.sin(theta);
   const sigma = size * 0.26;
   const sigma2 = sigma * sigma;
-  const contrast = 0.9;
+  const contrast = patch.contrast ?? 0.9;
+  const phase = patch.phase ?? 0;
 
   for (let y = -half; y < half; y += 1) {
     for (let x = -half; x < half; x += 1) {
       const xr = x * cosT + y * sinT;
       const yr = -x * sinT + y * cosT;
       const gaussian = Math.exp(-(xr * xr + yr * yr) / (2 * sigma2));
-      const sinusoid = Math.cos(2 * Math.PI * patch.frequency * xr);
+      const sinusoid = Math.cos(2 * Math.PI * patch.frequency * xr + phase);
       const luminance = 0.5 + 0.5 * contrast * gaussian * sinusoid;
       const gray = Math.max(0, Math.min(255, Math.round(luminance * 255)));
 
@@ -256,10 +261,15 @@ function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+function randomPhase() {
+  return Math.random() < 0.5 ? 0 : Math.PI;
+}
+
 function randomPatch() {
   return {
     orientation: randomFrom(ORIENTATIONS),
     frequency: randomFrom(FREQUENCIES),
+    phase: randomPhase(),
   };
 }
 
@@ -303,6 +313,8 @@ function generateTrialPatches() {
   const matchingCount = randomInt(2, 4);
   const profile = getDifficultyProfile();
 
+  target.contrast = profile.contrast;
+
   for (let i = 0; i < matchingCount; i += 1) {
     options.push({ ...target });
   }
@@ -310,6 +322,8 @@ function generateTrialPatches() {
   while (options.length < CONFIG.optionsCount) {
     const candidate = createDistractorFromTarget(target, profile);
     if (!patchEquals(candidate, target)) {
+      candidate.phase = randomPhase();
+      candidate.contrast = profile.contrast;
       options.push(candidate);
     }
   }
@@ -378,7 +392,7 @@ function renderOptions() {
   clearCanvas(optionsCtx, optionsCanvas);
   game.optionHitboxes = [];
 
-  const cols = 4;
+  const cols = 5;
   const rows = Math.ceil(game.currentOptions.length / cols);
   const gridWidth = (cols - 1) * CONFIG.optionGapX;
   const gridHeight = (rows - 1) * CONFIG.optionGapY;

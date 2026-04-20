@@ -200,6 +200,13 @@ button:disabled {
   color: #d1d5db;
 }
 
+.candidate-warmup-hint {
+  margin-top: 6px;
+  font-size: 13px;
+  color: #fcd34d;
+  line-height: 1.5;
+}
+
 /* Difficulty badge */
 .difficulty-badge {
   padding: 3px 12px;

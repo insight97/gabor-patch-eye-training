@@ -7,6 +7,7 @@ let statusText;
 let hintText;
 let feedbackText;
 let candidateLabel;
+let candidateWarmupHint;
 let progressText;
 let progressFill;
 let progressWrap;
@@ -145,6 +146,7 @@ function updateSessionControls() {
   }
 
   updateDifficultyBadge();
+  updateCandidateWarmupHint();
 }
 
 function updateCandidateLabel() {
@@ -163,6 +165,13 @@ function updateCandidateLabel() {
     }
     matchCountBadge.hidden = false;
   }
+}
+
+function updateCandidateWarmupHint() {
+  if (!candidateWarmupHint) {
+    return;
+  }
+  candidateWarmupHint.hidden = game.running;
 }
 
 async function showCelebrationPopup() {
@@ -750,6 +759,7 @@ function initApp() {
   hintText = document.getElementById('hintText');
   feedbackText = document.getElementById('feedbackText');
   candidateLabel = document.getElementById('candidateLabel');
+  candidateWarmupHint = document.getElementById('candidateWarmupHint');
   progressText = document.getElementById('progressText');
   progressFill = document.getElementById('progressFill');
   progressWrap = document.querySelector('.progress-wrap');
@@ -768,6 +778,7 @@ function initApp() {
     !hintText ||
     !feedbackText ||
     !candidateLabel ||
+    !candidateWarmupHint ||
     !progressText ||
     !progressFill ||
     !progressWrap ||

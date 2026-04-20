@@ -202,9 +202,10 @@ button:disabled {
 
 .candidate-warmup-hint {
   position: absolute;
-  top: 14px;
-  left: 14px;
-  right: 14px;
+  top: 50%;
+  left: 50%;
+  width: min(92%, 560px);
+  transform: translate(-50%, -50%);
   z-index: 1;
   padding: 10px 14px;
   border-radius: 10px;
@@ -216,7 +217,6 @@ button:disabled {
   line-height: 1.45;
   letter-spacing: 0.2px;
   text-align: center;
-  text-wrap: balance;
   pointer-events: none;
 }
 

@@ -3,26 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>蓋博符號比對訓練</title>
+    <title>蓋博符號視力訓練</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <main class="container">
-      <h1>蓋博符號比對訓練</h1>
-      <p class="subtitle">上方會顯示目標蓋博符號，下方會出現十幾個蓋博符號，請選出所有與目標完全相同的刺激。</p>
-
-      <details class="panel controls">
-        <summary>操作說明</summary>
-        <p>點選下方符號可切換選取，全部找對後會自動進入下一題。</p>
-        <p>每題不限時，但會記錄反應時間，並納入分數計算。</p>
-        <p class="note">訓練用途，非醫療診斷或治療。</p>
-      </details>
-
-      <section class="panel status">
-        <div id="statusText">尚未開始</div>
-        <div id="hintText">準備好後按開始</div>
-        <div id="feedbackText" aria-live="polite"></div>
-      </section>
+      <h1>蓋博符號視力訓練</h1>
+      <p class="subtitle">
+        蓋博符號是明暗條紋組成的視覺圖案，常用來測試眼睛與大腦辨識細節的能力。研究指出，規律練習這類辨識任務可幫助視覺敏感度與辨識速度；本工具提供一般人日常練習使用，非醫療診斷。
+      </p>
 
       <section class="panel stimulus-wrap">
         <div class="session-top">
@@ -55,7 +44,8 @@
             </div>
             <div class="options-stage">
               <div id="candidateWarmupHint" class="candidate-warmup-hint" role="note">
-                先閉上眼睛、深呼吸、再開始，訓練效果更好
+                閉眼、放鬆、深呼吸，<br />
+                準備好再開始，效果更好！
               </div>
               <canvas id="optionsCanvas" width="720" height="500" aria-label="candidate symbols"></canvas>
               <div id="celebrationPopup" class="celebration-overlay" hidden role="status" aria-live="polite">

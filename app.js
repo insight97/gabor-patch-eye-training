@@ -21,7 +21,8 @@ let matchCountBadge;
 const CONFIG = {
   blocks: 1,
   trialsPerBlock: 10,
-  optionsCount: 20,
+  desktopOptionsCount: 20,
+  mobileOptionsCount: 15,
   optionSize: 86,
   optionGapX: 120,
   optionGapY: 110,
@@ -81,6 +82,7 @@ const game = {
   trialClickCount: 0,
   trialMistakeClickCount: 0,
   difficultyLevel: 1,
+  optionsLayout: null,
 };
 
 function setFatalStatus(message) {
@@ -126,6 +128,14 @@ function setFeedback(text = '', type = '') {
 
 function getTotalTrials() {
   return CONFIG.blocks * CONFIG.trialsPerBlock;
+}
+
+function isMobileViewport() {
+  return window.innerWidth <= 720;
+}
+
+function getOptionsCount() {
+  return isMobileViewport() ? CONFIG.mobileOptionsCount : CONFIG.desktopOptionsCount;
 }
 
 function getCompletedTrialsCount() {
@@ -236,7 +246,7 @@ function updateDifficultyBadge() {
 }
 
 function clearCanvas(ctx, canvas) {
-  ctx.fillStyle = '#111827';
+  ctx.fillStyle = '#41586b';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 }
 
@@ -287,7 +297,7 @@ function drawGaborPatch(ctx, cx, cy, size, patch, selected = false) {
   const outlineY = Math.round(cy - outlineSize / 2);
 
   ctx.lineWidth = 4;
-  ctx.strokeStyle = '#22c55e';
+  ctx.strokeStyle = '#7dd3b0';
   ctx.strokeRect(outlineX, outlineY, outlineSize, outlineSize);
   ctx.restore();
 }
@@ -355,6 +365,7 @@ function generateTrialPatches() {
   const options = [];
   const matchingCount = randomInt(2, 4);
   const profile = getDifficultyProfile();
+  const optionsCount = getOptionsCount();
 
   target.contrast = profile.contrast;
 
@@ -362,7 +373,7 @@ function generateTrialPatches() {
     options.push({ ...target });
   }
 
-  while (options.length < CONFIG.optionsCount) {
+  while (options.length < optionsCount) {
     const candidate = createDistractorFromTarget(target, profile);
     if (!patchEquals(candidate, target)) {
       candidate.phase = randomPhase();
@@ -435,29 +446,100 @@ function renderOptions() {
   clearCanvas(optionsCtx, optionsCanvas);
   game.optionHitboxes = [];
 
-  const cols = 5;
+  const layout = getOptionsLayout();
+  const cols = layout.cols;
   const rows = Math.ceil(game.currentOptions.length / cols);
-  const gridWidth = (cols - 1) * CONFIG.optionGapX;
-  const gridHeight = (rows - 1) * CONFIG.optionGapY;
+  const gridWidth = (cols - 1) * layout.gapX;
+  const gridHeight = (rows - 1) * layout.gapY;
   const startX = (optionsCanvas.width - gridWidth) / 2;
   const startY = (optionsCanvas.height - gridHeight) / 2;
 
   game.currentOptions.forEach((option, index) => {
     const col = index % cols;
     const row = Math.floor(index / cols);
-    const x = startX + col * CONFIG.optionGapX;
-    const y = startY + row * CONFIG.optionGapY;
+    const x = startX + col * layout.gapX;
+    const y = startY + row * layout.gapY;
     const selected = game.selectedIndices.has(index);
 
-    drawGaborPatch(optionsCtx, x, y, CONFIG.optionSize, option, selected);
+    drawGaborPatch(optionsCtx, x, y, layout.optionSize, option, selected);
 
     game.optionHitboxes.push({
       index,
       x,
       y,
-      radius: CONFIG.optionSize / 2 + 8,
+      radius: layout.hitRadius,
     });
   });
+}
+
+function computeOptionsLayout(width) {
+  const safeWidth = Math.max(280, Math.round(width));
+  const optionsCount = getOptionsCount();
+  let cols = 5;
+
+  if (safeWidth <= 400) {
+    cols = 3;
+  } else if (safeWidth <= 620) {
+    cols = 4;
+  }
+
+  const horizontalPadding = safeWidth <= 400 ? 18 : 24;
+  const usableWidth = safeWidth - horizontalPadding * 2;
+  const optionSize = Math.max(52, Math.min(86, Math.floor(usableWidth / cols) - 12));
+  const gapX = optionSize + (safeWidth <= 400 ? 18 : safeWidth <= 620 ? 22 : 30);
+  const gapY = optionSize + (safeWidth <= 400 ? 20 : 24);
+  const rows = Math.ceil(optionsCount / cols);
+  const canvasHeight = Math.round(rows * gapY + optionSize * 0.9);
+
+  return {
+    cols,
+    optionSize,
+    gapX,
+    gapY,
+    canvasHeight,
+    hitRadius: optionSize / 2 + Math.max(8, Math.round(optionSize * 0.12)),
+  };
+}
+
+function getOptionsLayout() {
+  if (!game.optionsLayout) {
+    game.optionsLayout = computeOptionsLayout(optionsCanvas?.width || 720);
+  }
+  return game.optionsLayout;
+}
+
+function resizeCanvases() {
+  if (!targetCanvas || !optionsCanvas) {
+    return;
+  }
+
+  const nextTargetSize = window.innerWidth <= 480 ? 120 : 140;
+  if (targetCanvas.width !== nextTargetSize || targetCanvas.height !== nextTargetSize) {
+    targetCanvas.width = nextTargetSize;
+    targetCanvas.height = nextTargetSize;
+  }
+
+  const stageWidth = optionsCanvas.parentElement?.clientWidth || optionsCanvas.clientWidth || 720;
+  const nextWidth = Math.max(280, Math.min(720, Math.round(stageWidth)));
+  const nextLayout = computeOptionsLayout(nextWidth);
+  const shouldResize = optionsCanvas.width !== nextWidth || optionsCanvas.height !== nextLayout.canvasHeight;
+
+  game.optionsLayout = nextLayout;
+
+  if (shouldResize) {
+    optionsCanvas.width = nextWidth;
+    optionsCanvas.height = nextLayout.canvasHeight;
+  }
+
+  clearCanvas(targetCtx, targetCanvas);
+  clearCanvas(optionsCtx, optionsCanvas);
+
+  if (game.currentTarget) {
+    renderTarget();
+  }
+  if (game.currentOptions.length > 0) {
+    renderOptions();
+  }
 }
 
 function getCanvasPoint(event, canvas) {
@@ -649,11 +731,9 @@ function showResult(summary) {
   resultList.innerHTML = '';
   const stats = [
     { label: '總分', value: summary.finalScore, highlight: true },
-    { label: '完成率', value: `${summary.completionRate}%`, highlight: true },
     { label: '操作正確率', value: `${summary.accuracy}%` },
     { label: '平均反應時間', value: summary.avgRt },
     { label: '速度分數', value: summary.speedScore },
-    { label: '答對題數', value: `${summary.correct} / ${summary.total}` },
     { label: '誤點次數', value: summary.totalMistakeClicks },
     { label: '平均難度', value: summary.avgDifficulty },
   ];
@@ -815,17 +895,21 @@ function initApp() {
   startBtn.addEventListener('click', handleStartSession);
   startBtn.addEventListener('pointerup', handleStartSession);
 
-  optionsCanvas.addEventListener('click', toggleOptionAt);
-  optionsCanvas.addEventListener('touchstart', (event) => {
-    const [touch] = event.changedTouches;
-    if (!touch) {
-      return;
-    }
-    toggleOptionAt(touch);
-  });
+  if (window.PointerEvent) {
+    optionsCanvas.addEventListener('pointerdown', toggleOptionAt);
+  } else {
+    optionsCanvas.addEventListener('click', toggleOptionAt);
+    optionsCanvas.addEventListener('touchstart', (event) => {
+      const [touch] = event.changedTouches;
+      if (!touch) {
+        return;
+      }
+      toggleOptionAt(touch);
+    });
+  }
 
-  clearCanvas(targetCtx, targetCanvas);
-  clearCanvas(optionsCtx, optionsCanvas);
+  resizeCanvases();
+  window.addEventListener('resize', resizeCanvases);
   celebrationPopup.hidden = true;
   updateCandidateLabel();
   updateProgress();

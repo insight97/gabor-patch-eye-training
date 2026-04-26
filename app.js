@@ -139,7 +139,7 @@ function getOptionsCount() {
 }
 
 function getCompletedTrialsCount() {
-  return (game.block - 1) * CONFIG.trialsPerBlock + game.trial;
+  return game.sessionTrials.length;
 }
 
 function updateProgress() {
@@ -622,6 +622,7 @@ function submitCurrentTrial() {
     difficulty: getDifficultyProfile().label,
   };
   game.sessionTrials.push(trialResult);
+  updateProgress();
   const adaptation = adaptDifficulty(trialResult);
   updateDifficultyBadge();
 

@@ -284,10 +284,10 @@ button:disabled {
 }
 
 .progress-start-btn {
-  width: min(100%, 300px);
-  min-height: 64px;
-  padding: 18px 28px;
-  font-size: clamp(20px, 3vw, 26px);
+  width: min(100%, 240px);
+  min-height: 52px;
+  padding: 14px 22px;
+  font-size: clamp(17px, 2.2vw, 20px);
   pointer-events: auto;
 }
 

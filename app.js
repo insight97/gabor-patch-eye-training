@@ -20,7 +20,7 @@ let matchCountBadge;
 
 const CONFIG = {
   blocks: 1,
-  trialsPerBlock: 10,
+  trialsPerBlock: 15,
   desktopOptionsCount: 20,
   mobileOptionsCount: 15,
   optionSize: 86,

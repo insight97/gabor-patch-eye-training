@@ -822,6 +822,11 @@ async function runSession() {
   }
 
   game.running = false;
+  game.currentTarget = null;
+  game.currentOptions = [];
+  game.answerIndices = new Set();
+  game.selectedIndices = new Set();
+  game.optionHitboxes = [];
   game.requiredMatchCount = null;
   startBtn.disabled = false;
   updateSessionControls();

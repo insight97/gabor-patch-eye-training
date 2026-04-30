@@ -38,32 +38,32 @@ const DIFFICULTY_PROFILES = [
     contrast: 0.9,
     orientationOffsets: [-90, -45, 45, 90],
     frequencyOffsets: [-0.036, -0.018, 0.018, 0.036],
-    fastRtThreshold: 2300,
-    slowRtThreshold: 4000,
+    fastRtThreshold: 3000,
+    slowRtThreshold: 5200,
   },
   {
     label: '普通',
     contrast: 0.75,
-    orientationOffsets: [-45, -22, 22, 45],
-    frequencyOffsets: [-0.018, -0.009, 0.009, 0.018],
-    fastRtThreshold: 1800,
-    slowRtThreshold: 3300,
+    orientationOffsets: [-60, -30, 30, 60],
+    frequencyOffsets: [-0.024, -0.014, 0.014, 0.024],
+    fastRtThreshold: 2500,
+    slowRtThreshold: 4500,
   },
   {
     label: '困難',
     contrast: 0.6,
-    orientationOffsets: [-30, -15, 15, 30],
-    frequencyOffsets: [-0.012, -0.006, 0.006, 0.012],
-    fastRtThreshold: 1500,
-    slowRtThreshold: 2600,
+    orientationOffsets: [-45, -24, 24, 45],
+    frequencyOffsets: [-0.018, -0.01, 0.01, 0.018],
+    fastRtThreshold: 2200,
+    slowRtThreshold: 3800,
   },
   {
     label: '專家',
     contrast: 0.45,
-    orientationOffsets: [-20, -10, 10, 20],
-    frequencyOffsets: [-0.008, -0.004, 0.004, 0.008],
-    fastRtThreshold: 1200,
-    slowRtThreshold: 2200,
+    orientationOffsets: [-32, -18, 18, 32],
+    frequencyOffsets: [-0.014, -0.008, 0.008, 0.014],
+    fastRtThreshold: 1900,
+    slowRtThreshold: 3200,
   },
 ];
 
@@ -412,9 +412,9 @@ function getTrialPerformanceLevel(trialResult) {
   const profile = getDifficultyProfile();
   const fastAndAccurate =
     trialResult.correct &&
-    trialAccuracy >= 90 &&
+    trialAccuracy >= 80 &&
     trialResult.rt <= profile.fastRtThreshold;
-  const struggling = !trialResult.correct || trialAccuracy < 70 || trialResult.rt >= profile.slowRtThreshold;
+  const struggling = !trialResult.correct || trialAccuracy < 50 || trialResult.rt >= profile.slowRtThreshold;
 
   if (fastAndAccurate) {
     return 'up';

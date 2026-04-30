@@ -23,14 +23,15 @@ const CONFIG = {
   trialsPerBlock: 10,
   desktopOptionsCount: 20,
   mobileOptionsCount: 15,
-  optionSize: 86,
+  optionSize: 78,
+  gaborPadding: 6,
   optionGapX: 120,
   optionGapY: 110,
 };
 
 const STORE_KEY = 'gabor-match-training-history-v3';
 const ORIENTATIONS = [-45, 0, 45, 90];
-const FREQUENCIES = [0.018, 0.030, 0.044];
+const FREQUENCIES = [0.034, 0.056, 0.08];
 const DIFFICULTY_PROFILES = [
   {
     label: '簡單',
@@ -251,12 +252,13 @@ function clearCanvas(ctx, canvas) {
 }
 
 function drawGaborPatch(ctx, cx, cy, size, patch, selected = false) {
-  const half = Math.floor(size / 2);
-  const imageData = ctx.createImageData(size, size);
+  const innerSize = Math.max(1, size - CONFIG.gaborPadding * 2);
+  const half = Math.floor(innerSize / 2);
+  const imageData = ctx.createImageData(innerSize, innerSize);
   const theta = (patch.orientation * Math.PI) / 180;
   const cosT = Math.cos(theta);
   const sinT = Math.sin(theta);
-  const sigma = size * 0.26;
+  const sigma = innerSize * 0.18;
   const sigma2 = sigma * sigma;
   const contrast = patch.contrast ?? 0.9;
   const phase = patch.phase ?? 0;
@@ -272,7 +274,7 @@ function drawGaborPatch(ctx, cx, cy, size, patch, selected = false) {
 
       const px = x + half;
       const py = y + half;
-      const idx = (py * size + px) * 4;
+      const idx = (py * innerSize + px) * 4;
       imageData.data[idx] = gray;
       imageData.data[idx + 1] = gray;
       imageData.data[idx + 2] = gray;
@@ -280,10 +282,14 @@ function drawGaborPatch(ctx, cx, cy, size, patch, selected = false) {
     }
   }
 
+  const tileX = Math.round(cx - size / 2);
+  const tileY = Math.round(cy - size / 2);
   const drawX = Math.round(cx - half);
   const drawY = Math.round(cy - half);
 
   ctx.save();
+  ctx.fillStyle = '#808080';
+  ctx.fillRect(tileX, tileY, size, size);
   ctx.putImageData(imageData, drawX, drawY);
 
   if (!selected) {
@@ -485,9 +491,9 @@ function computeOptionsLayout(width) {
 
   const horizontalPadding = safeWidth <= 400 ? 18 : 24;
   const usableWidth = safeWidth - horizontalPadding * 2;
-  const optionSize = Math.max(52, Math.min(86, Math.floor(usableWidth / cols) - 12));
-  const gapX = optionSize + (safeWidth <= 400 ? 18 : safeWidth <= 620 ? 22 : 30);
-  const gapY = optionSize + (safeWidth <= 400 ? 20 : 24);
+  const optionSize = Math.max(44, Math.min(CONFIG.optionSize, Math.floor(usableWidth / cols) - 12));
+  const gapX = optionSize + (safeWidth <= 400 ? 12 : safeWidth <= 620 ? 16 : 22);
+  const gapY = optionSize + (safeWidth <= 400 ? 14 : 18);
   const rows = Math.ceil(optionsCount / cols);
   const canvasHeight = Math.round(rows * gapY + optionSize * 0.9);
 
@@ -513,7 +519,7 @@ function resizeCanvases() {
     return;
   }
 
-  const nextTargetSize = window.innerWidth <= 480 ? 120 : 140;
+  const nextTargetSize = window.innerWidth <= 480 ? 108 : 120;
   if (targetCanvas.width !== nextTargetSize || targetCanvas.height !== nextTargetSize) {
     targetCanvas.width = nextTargetSize;
     targetCanvas.height = nextTargetSize;

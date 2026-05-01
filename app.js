@@ -17,6 +17,7 @@ let resultList;
 let historyList;
 let difficultyBadge;
 let matchCountBadge;
+let audioCtx;
 
 const CONFIG = {
   blocks: 1,
@@ -104,6 +105,86 @@ function setFatalStatus(message) {
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function getAudioContext() {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) {
+    return null;
+  }
+  if (!audioCtx) {
+    audioCtx = new AudioContextClass();
+  }
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+  return audioCtx;
+}
+
+function playTone({ frequency, duration = 0.1, delay = 0, gain = 0.045, type = 'sine' }) {
+  const ctx = getAudioContext();
+  if (!ctx) {
+    return;
+  }
+
+  const oscillator = ctx.createOscillator();
+  const volume = ctx.createGain();
+  const startAt = ctx.currentTime + delay;
+  const endAt = startAt + duration;
+
+  oscillator.type = type;
+  oscillator.frequency.setValueAtTime(frequency, startAt);
+  volume.gain.setValueAtTime(0.0001, startAt);
+  volume.gain.exponentialRampToValueAtTime(gain, startAt + 0.01);
+  volume.gain.exponentialRampToValueAtTime(0.0001, endAt);
+
+  oscillator.connect(volume);
+  volume.connect(ctx.destination);
+  oscillator.start(startAt);
+  oscillator.stop(endAt + 0.02);
+}
+
+function playSoundFeedback(type) {
+  if (type === 'start') {
+    playTone({ frequency: 523.25, duration: 0.08, gain: 0.04 });
+    playTone({ frequency: 659.25, duration: 0.1, delay: 0.08, gain: 0.04 });
+    return;
+  }
+
+  if (type === 'select') {
+    playTone({ frequency: 659.25, duration: 0.05, gain: 0.032 });
+    playTone({ frequency: 987.77, duration: 0.07, delay: 0.045, gain: 0.03 });
+    return;
+  }
+
+  if (type === 'mistake') {
+    playTone({ frequency: 196, duration: 0.12, gain: 0.045, type: 'triangle' });
+    return;
+  }
+
+  if (type === 'deselect') {
+    playTone({ frequency: 440, duration: 0.045, gain: 0.026, type: 'triangle' });
+    playTone({ frequency: 330, duration: 0.055, delay: 0.045, gain: 0.024, type: 'triangle' });
+    return;
+  }
+
+  if (type === 'complete') {
+    playTone({ frequency: 523.25, duration: 0.08, delay: 0.03, gain: 0.04 });
+    playTone({ frequency: 659.25, duration: 0.09, delay: 0.1, gain: 0.04 });
+    playTone({ frequency: 783.99, duration: 0.1, delay: 0.17, gain: 0.038 });
+    playTone({ frequency: 1046.5, duration: 0.16, delay: 0.25, gain: 0.036 });
+    playTone({ frequency: 1318.51, duration: 0.12, delay: 0.3, gain: 0.018, type: 'triangle' });
+    return;
+  }
+
+  if (type === 'finish') {
+    playTone({ frequency: 392, duration: 0.08, gain: 0.038 });
+    playTone({ frequency: 523.25, duration: 0.09, delay: 0.08, gain: 0.04 });
+    playTone({ frequency: 659.25, duration: 0.1, delay: 0.16, gain: 0.04 });
+    playTone({ frequency: 783.99, duration: 0.12, delay: 0.25, gain: 0.038 });
+    playTone({ frequency: 1046.5, duration: 0.22, delay: 0.36, gain: 0.036 });
+    playTone({ frequency: 1318.51, duration: 0.18, delay: 0.43, gain: 0.018, type: 'triangle' });
+  }
 }
 
 function setStatus(text, hint = '') {
@@ -576,12 +657,14 @@ function toggleOptionAt(event) {
 
   const wasSelected = game.selectedIndices.has(hit.index);
   const isAnswer = game.answerIndices.has(hit.index);
+  const isDeselect = wasSelected;
   const isMistakeClick = (!wasSelected && !isAnswer) || (wasSelected && isAnswer);
 
   game.trialClickCount += 1;
   if (isMistakeClick) {
     game.trialMistakeClickCount += 1;
   }
+  playSoundFeedback(isDeselect ? 'deselect' : isAnswer ? 'select' : 'mistake');
 
   if (game.selectedIndices.has(hit.index)) {
     game.selectedIndices.delete(hit.index);
@@ -634,6 +717,7 @@ function submitCurrentTrial() {
 
   const trialTitle = `Block ${game.block}/${CONFIG.blocks} · Trial ${game.trial}/${CONFIG.trialsPerBlock}`;
   if (correct) {
+    playSoundFeedback('complete');
     setStatus(
       trialTitle,
       `✅ 正確（RT ${rt} ms）｜難度：${adaptation.beforeLabel}${adaptation.changed ? ` → ${adaptation.afterLabel}` : ''}`,
@@ -844,6 +928,7 @@ async function runSession() {
   showResult(summary);
   saveSession(summary);
   renderHistory();
+  playSoundFeedback('finish');
 
   setStatus('訓練完成 🎉', `正確率 ${summary.accuracy}% · 平均 RT ${summary.avgRt}`);
   setFeedback(`🏁 本回合總分：${summary.finalScore}`, 'success');
@@ -899,6 +984,7 @@ function initApp() {
     if (game.running || startBtn.disabled) {
       return;
     }
+    playSoundFeedback('start');
     runSession();
   };
 

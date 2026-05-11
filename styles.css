@@ -63,6 +63,51 @@ h2 {
   box-shadow: 0 20px 46px rgb(7 13 20 / 24%);
 }
 
+.today-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  background: color-mix(in oklab, var(--panel-strong), var(--accent) 10%);
+  border-color: color-mix(in oklab, var(--border), var(--accent) 32%);
+}
+
+.today-summary h2 {
+  margin-bottom: 6px;
+}
+
+.today-encouragement {
+  margin: 0;
+  color: var(--label);
+  line-height: 1.45;
+}
+
+.today-minutes {
+  min-width: 128px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgb(16 25 35 / 34%);
+  border: 1px solid color-mix(in oklab, var(--border), var(--accent) 24%);
+}
+
+.today-minutes span:first-child {
+  font-size: clamp(34px, 7vw, 48px);
+  font-weight: 900;
+  line-height: 0.95;
+  color: var(--accent-soft);
+}
+
+.today-minutes span:last-child {
+  margin-top: 5px;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 700;
+}
+
 /* Collapsible instructions */
 details.controls summary {
   cursor: pointer;
@@ -453,6 +498,10 @@ canvas {
     padding: 14px;
   }
 
+  .today-summary {
+    align-items: stretch;
+  }
+
   .main-area {
     flex-direction: column;
     gap: 14px;
@@ -532,5 +581,13 @@ canvas {
   .history-item {
     gap: 6px 10px;
     font-size: 13px;
+  }
+
+  .today-summary {
+    flex-direction: column;
+  }
+
+  .today-minutes {
+    width: 100%;
   }
 }

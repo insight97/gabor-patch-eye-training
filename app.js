@@ -12,6 +12,7 @@ let progressText;
 let progressFill;
 let progressWrap;
 let celebrationPopup;
+let celebrationMessage;
 let resultPanel;
 let resultList;
 let historyList;
@@ -28,11 +29,13 @@ const CONFIG = {
   mobileOptionsCount: 15,
   optionSize: 78,
   gaborPadding: 6,
+  gaborTextureScale: 0.88,
   optionGapX: 120,
   optionGapY: 110,
 };
 
 const STORE_KEY = 'gabor-match-training-history-v3';
+const FEEDBACK_VOLUME_MULTIPLIER = 2.5;
 const DAILY_ENCOURAGEMENT_THRESHOLDS = [
   { minutes: 20, text: '今天已經完成高品質訓練，讓眼睛好好休息也很重要。' },
   { minutes: 15, text: '達成今日目標，穩定累積比一次練太久更有效。' },
@@ -40,6 +43,15 @@ const DAILY_ENCOURAGEMENT_THRESHOLDS = [
   { minutes: 5, text: '很好，今天已經累積一段扎實的視覺刺激。' },
   { minutes: 1, text: '已經開始累積，讓大腦慢慢進入辨識節奏。' },
   { minutes: 0, text: '準備開始今天的視覺暖身。' },
+];
+const FAST_CORRECT_FEEDBACKS = [
+  '⚡ 速度很快！',
+];
+const STEADY_CORRECT_FEEDBACKS = [
+  '🎉 完全正確！',
+];
+const SLOW_CORRECT_FEEDBACKS = [
+  '💪 強力訓練！',
 ];
 const ORIENTATIONS = [-45, 0, 45, 90];
 const FREQUENCIES = [0.034, 0.056, 0.08];
@@ -96,6 +108,7 @@ const game = {
   difficultyLevel: 1,
   optionsLayout: null,
   sessionStartedAt: null,
+  correctFeedbackText: '',
 };
 
 function setFatalStatus(message) {
@@ -146,7 +159,7 @@ function playTone({ frequency, duration = 0.1, delay = 0, gain = 0.045, type = '
   oscillator.type = type;
   oscillator.frequency.setValueAtTime(frequency, startAt);
   volume.gain.setValueAtTime(0.0001, startAt);
-  volume.gain.exponentialRampToValueAtTime(gain, startAt + 0.01);
+  volume.gain.exponentialRampToValueAtTime(gain * FEEDBACK_VOLUME_MULTIPLIER, startAt + 0.01);
   volume.gain.exponentialRampToValueAtTime(0.0001, endAt);
 
   oscillator.connect(volume);
@@ -285,7 +298,10 @@ function updateCandidateWarmupHint() {
   candidateWarmupHint.hidden = game.running;
 }
 
-async function showCelebrationPopup() {
+async function showCelebrationPopup(message = '🎉 恭喜答對！') {
+  if (celebrationMessage) {
+    celebrationMessage.textContent = message;
+  }
   celebrationPopup.hidden = false;
 
   await new Promise((resolve) => {
@@ -344,7 +360,7 @@ function clearCanvas(ctx, canvas) {
 }
 
 function drawGaborPatch(ctx, cx, cy, size, patch, selected = false) {
-  const innerSize = Math.max(1, size - CONFIG.gaborPadding * 2);
+  const innerSize = Math.max(1, Math.round((size - CONFIG.gaborPadding * 2) * CONFIG.gaborTextureScale));
   const half = Math.floor(innerSize / 2);
   const imageData = ctx.createImageData(innerSize, innerSize);
   const theta = (patch.orientation * Math.PI) / 180;
@@ -697,6 +713,27 @@ function setsEqual(a, b) {
   return [...a].every((value) => b.has(value));
 }
 
+function pickFeedbackMessage(messages) {
+  const completedTrialCount = Math.max(0, game.sessionTrials.length - 1);
+  return messages[completedTrialCount % messages.length];
+}
+
+function getCorrectFeedback(rt, profile) {
+  const thresholdRange = profile.slowRtThreshold - profile.fastRtThreshold;
+  const fastFeedbackThreshold = profile.fastRtThreshold + thresholdRange / 3;
+  const slowFeedbackThreshold = profile.fastRtThreshold + (thresholdRange * 2) / 3;
+
+  if (rt <= fastFeedbackThreshold) {
+    return pickFeedbackMessage(FAST_CORRECT_FEEDBACKS);
+  }
+
+  if (rt >= slowFeedbackThreshold) {
+    return pickFeedbackMessage(SLOW_CORRECT_FEEDBACKS);
+  }
+
+  return pickFeedbackMessage(STEADY_CORRECT_FEEDBACKS);
+}
+
 function submitCurrentTrial() {
   if (!game.awaitingResponse) {
     return;
@@ -708,6 +745,7 @@ function submitCurrentTrial() {
   const selectedSorted = [...game.selectedIndices].sort((a, b) => a - b);
   const answerSorted = [...game.answerIndices].sort((a, b) => a - b);
   const correct = setsEqual(game.selectedIndices, game.answerIndices);
+  const profile = getDifficultyProfile();
 
   const trialResult = {
     block: game.block,
@@ -719,7 +757,7 @@ function submitCurrentTrial() {
     target: { ...game.currentTarget },
     clickCount: game.trialClickCount,
     mistakeClicks: game.trialMistakeClickCount,
-    difficulty: getDifficultyProfile().label,
+    difficulty: profile.label,
   };
   game.sessionTrials.push(trialResult);
   updateProgress();
@@ -728,13 +766,16 @@ function submitCurrentTrial() {
 
   const trialTitle = `Block ${game.block}/${CONFIG.blocks} · Trial ${game.trial}/${CONFIG.trialsPerBlock}`;
   if (correct) {
+    const correctFeedback = getCorrectFeedback(rt, profile);
+    game.correctFeedbackText = correctFeedback;
     playSoundFeedback('complete');
     setStatus(
       trialTitle,
       `✅ 正確（RT ${rt} ms）｜難度：${adaptation.beforeLabel}${adaptation.changed ? ` → ${adaptation.afterLabel}` : ''}`,
     );
-    setFeedback('🎉 完全正確！', 'success');
+    setFeedback(correctFeedback, 'success');
   } else {
+    game.correctFeedbackText = '';
     setStatus(
       trialTitle,
       `❌ 錯誤（RT ${rt} ms）｜難度：${adaptation.beforeLabel}${adaptation.changed ? ` → ${adaptation.afterLabel}` : ''}`,
@@ -911,6 +952,7 @@ async function runTrial() {
   game.selectedIndices = new Set();
   game.trialClickCount = 0;
   game.trialMistakeClickCount = 0;
+  game.correctFeedbackText = '';
 
   const generated = generateTrialPatches();
   game.currentTarget = generated.target;
@@ -941,7 +983,7 @@ async function runTrial() {
     }, 16);
   });
 
-  await showCelebrationPopup();
+  await showCelebrationPopup(game.correctFeedbackText);
 }
 
 async function runSession() {
@@ -1011,6 +1053,7 @@ function initApp() {
   progressFill = document.getElementById('progressFill');
   progressWrap = document.querySelector('.progress-wrap');
   celebrationPopup = document.getElementById('celebrationPopup');
+  celebrationMessage = document.getElementById('celebrationMessage');
   resultPanel = document.getElementById('resultPanel');
   resultList = document.getElementById('resultList');
   historyList = document.getElementById('historyList');
@@ -1029,6 +1072,7 @@ function initApp() {
     !progressFill ||
     !progressWrap ||
     !celebrationPopup ||
+    !celebrationMessage ||
     !resultPanel ||
     !resultList ||
     !historyList ||

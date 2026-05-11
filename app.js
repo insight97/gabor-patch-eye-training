@@ -17,6 +17,8 @@ let resultList;
 let historyList;
 let difficultyBadge;
 let matchCountBadge;
+let todayMinutesValue;
+let todayEncouragement;
 let audioCtx;
 
 const CONFIG = {
@@ -31,6 +33,14 @@ const CONFIG = {
 };
 
 const STORE_KEY = 'gabor-match-training-history-v3';
+const DAILY_ENCOURAGEMENT_THRESHOLDS = [
+  { minutes: 20, text: '今天已經完成高品質訓練，讓眼睛好好休息也很重要。' },
+  { minutes: 15, text: '達成今日目標，穩定累積比一次練太久更有效。' },
+  { minutes: 10, text: '已經進入有效訓練量，保持專注完成最後一段。' },
+  { minutes: 5, text: '很好，今天已經累積一段扎實的視覺刺激。' },
+  { minutes: 1, text: '已經開始累積，讓大腦慢慢進入辨識節奏。' },
+  { minutes: 0, text: '準備開始今天的視覺暖身。' },
+];
 const ORIENTATIONS = [-45, 0, 45, 90];
 const FREQUENCIES = [0.034, 0.056, 0.08];
 const DIFFICULTY_PROFILES = [
@@ -85,6 +95,7 @@ const game = {
   trialMistakeClickCount: 0,
   difficultyLevel: 1,
   optionsLayout: null,
+  sessionStartedAt: null,
 };
 
 function setFatalStatus(message) {
@@ -740,6 +751,48 @@ function getHistory() {
   }
 }
 
+function getLocalDateKey(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getSessionDate(session) {
+  const timestamp = session.completedAt || session.date;
+  if (!timestamp) {
+    return null;
+  }
+
+  const date = new Date(timestamp);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function getTodayTrainingMs() {
+  const todayKey = getLocalDateKey(new Date());
+  return getHistory().reduce((sum, session) => {
+    const sessionDate = getSessionDate(session);
+    if (!sessionDate || getLocalDateKey(sessionDate) !== todayKey) {
+      return sum;
+    }
+    return sum + (Number.isFinite(session.durationMs) ? session.durationMs : 0);
+  }, 0);
+}
+
+function getDailyEncouragement(minutes) {
+  return DAILY_ENCOURAGEMENT_THRESHOLDS.find((item) => minutes >= item.minutes).text;
+}
+
+function renderTodaySummary() {
+  if (!todayMinutesValue || !todayEncouragement) {
+    return;
+  }
+
+  const minutes = getTodayTrainingMs() / 60000;
+  todayMinutesValue.textContent = minutes.toFixed(1);
+  todayEncouragement.textContent = getDailyEncouragement(minutes);
+}
+
 function saveSession(summary) {
   const history = getHistory();
   history.unshift(summary);
@@ -772,7 +825,10 @@ function renderHistory() {
 
     const stats = document.createElement('span');
     stats.className = 'history-stats';
-    stats.textContent = `正確率 ${session.accuracy}% · 平均 RT ${session.avgRt}`;
+    const durationText = Number.isFinite(session.durationMs)
+      ? ` · ${Math.max(0.1, session.durationMs / 60000).toFixed(1)} 分鐘`
+      : '';
+    stats.textContent = `正確率 ${session.accuracy}% · 平均 RT ${session.avgRt}${durationText}`;
 
     item.appendChild(date);
     item.appendChild(score);
@@ -802,9 +858,13 @@ function summarizeSession() {
       : game.sessionTrials.map((trial) => DIFFICULTY_PROFILES.findIndex((profile) => profile.label === trial.difficulty) + 1);
   const avgDifficultyLevel =
     avgDifficulty === '-' ? '-' : (avgDifficulty.reduce((sum, value) => sum + value, 0) / total).toFixed(2);
+  const completedAt = new Date();
+  const durationMs = game.sessionStartedAt ? Math.max(0, completedAt.getTime() - game.sessionStartedAt) : 0;
 
   return {
-    date: new Date().toLocaleString('zh-TW', { hour12: false }),
+    date: completedAt.toLocaleString('zh-TW', { hour12: false }),
+    completedAt: completedAt.toISOString(),
+    durationMs,
     total,
     correct: correctCount,
     accuracy,
@@ -886,6 +946,7 @@ async function runTrial() {
 
 async function runSession() {
   game.running = true;
+  game.sessionStartedAt = Date.now();
   game.block = 0;
   game.trial = 0;
   game.sessionTrials = [];
@@ -928,6 +989,7 @@ async function runSession() {
   showResult(summary);
   saveSession(summary);
   renderHistory();
+  renderTodaySummary();
   playSoundFeedback('finish');
 
   setStatus('訓練完成 🎉', `正確率 ${summary.accuracy}% · 平均 RT ${summary.avgRt}`);
@@ -954,6 +1016,8 @@ function initApp() {
   historyList = document.getElementById('historyList');
   difficultyBadge = document.getElementById('difficultyBadge');
   matchCountBadge = document.getElementById('matchCountBadge');
+  todayMinutesValue = document.getElementById('todayMinutesValue');
+  todayEncouragement = document.getElementById('todayEncouragement');
 
   if (
     !targetCanvas ||
@@ -967,7 +1031,9 @@ function initApp() {
     !celebrationPopup ||
     !resultPanel ||
     !resultList ||
-    !historyList
+    !historyList ||
+    !todayMinutesValue ||
+    !todayEncouragement
   ) {
     setFatalStatus('初始化失敗：找不到必要的頁面元件');
     return;
@@ -1013,6 +1079,7 @@ function initApp() {
   updateProgress();
   updateSessionControls();
   renderHistory();
+  renderTodaySummary();
 }
 
 if (document.readyState === 'loading') {

@@ -1094,6 +1094,7 @@ function initApp() {
     if (game.running || startBtn.disabled) {
       return;
     }
+    renderTodaySummary();
     playSoundFeedback('start');
     runSession();
   };

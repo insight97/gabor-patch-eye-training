@@ -35,7 +35,7 @@ const CONFIG = {
 };
 
 const STORE_KEY = 'gabor-match-training-history-v3';
-const FEEDBACK_VOLUME_MULTIPLIER = 2.5;
+const FEEDBACK_VOLUME_MULTIPLIER = 4.2;
 const DAILY_ENCOURAGEMENT_THRESHOLDS = [
   { minutes: 20, text: '今天已經完成高品質訓練，讓眼睛好好休息也很重要。' },
   { minutes: 15, text: '達成今日目標，穩定累積比一次練太久更有效。' },
